@@ -299,7 +299,7 @@
           const g = Number(m[1]);
           if (g < 1 || g > 31 || visti.has(g)) continue;
           visti.add(g);
-          turni.push({ dataIso: `anno-{pad(mese)}-pad(g)`,dataFormattata:`{g} ${p[2]} ${anno}`, codiceTurno: m[2], inizio: m[3], fine: m[4] });
+          turni.push({ dataIso: `${anno}-${pad(mese)}-${pad(g)}`, dataFormattata: `${g} ${p[2]} ${anno}`, codiceTurno: m[2], inizio: m[3], fine: m[4] });
         }
 
         if (!turni.length) {
@@ -311,7 +311,7 @@
 
         turniSalvati = turni;
         localStorage.setItem('turnihub_turni', JSON.stringify(turniSalvati));
-        document.getElementById('nome-utente-sidebar').textContent = `${nome} cognome({matricola})`;
+        document.getElementById('nome-utente-sidebar').textContent = `${nome} ${cognome} (${matricola})`;
         statoDiv.style.color = '#28a745';
         statoDiv.textContent = `Caricati con successo ${turni.length} turni!`;
         disegnaCalendario(turniSalvati);
@@ -351,11 +351,11 @@
 
       div.innerHTML = `
         <div class="turno-info-top">
-          <span><i>nomeGiorno</i><b>{g.dataFormattata}</b></span>
-          <span>g.codiceTurno<small>({g.inizio}-${g.fine})</small></span>
+          <span><i>${nomeGiorno}</i> <b>${g.dataFormattata}</b></span>
+          <span>${g.codiceTurno} <small>(${g.inizio}-${g.fine})</small></span>
         </div>
         <div class="nota-giorno-box">
-          <input type="text" id="nota-g.dataIso"value="{notaSalvata}" placeholder="Aggiungi nota per questo giorno...">
+          <input type="text" id="nota-${g.dataIso}" value="${notaSalvata}" placeholder="Aggiungi nota per questo giorno...">
           <button onclick="salvaNotaGiorno('${g.dataIso}')" title="Salva nota"><i class="fas fa-save"></i></button>
         </div>
       `;
@@ -474,7 +474,7 @@
     const select = document.getElementById('maintenance-car-select');
     select.innerHTML = '<option value="">Seleziona un\'auto...</option>';
     cars.forEach(c => {
-      select.innerHTML += `<option value="c.id">{c.brand} c.model({c.plate})</option>`;
+      select.innerHTML += `<option value="${c.id}">${c.brand} ${c.model} (${c.plate})</option>`;
     });
     document.getElementById('maintenance-form-container').style.display = 'none';
     document.getElementById('maintenance-list').innerHTML = '';
@@ -586,4 +586,3 @@
 </script>
 </body>
 </html>
-
