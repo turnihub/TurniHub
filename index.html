@@ -411,17 +411,18 @@
       const div = document.createElement('div');
       div.className = 'car-card';
       div.innerHTML = `
-        <div style="position:absolute; top:15px; right:15px;">
+        <div style="position:absolute; top:15px; right:15px; display:flex; gap:5px;">
           <button onclick="editCar('${car.id}')" style="background:#0056b3; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Modifica</button>
           <button onclick="deleteCar('${car.id}')" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Elimina</button>
         </div>
-        <h3>${car.brand} car.model({car.plate})</h3>
+        <h3>${car.brand} ${car.model} (${car.plate})</h3>
         <div class="car-info">
           <div><span class="car-info-label">Anno:</span> ${car.year}</div>
           <div><span class="car-info-label">Polizza:</span> ${car.insurance || 'N/A'}</div>
           <div><span class="car-info-label">Scad. Assicurazione:</span> ${car.insuranceExpiry || 'N/A'}</div>
           <div><span class="car-info-label">Ultima Revisione:</span> ${car.inspection || 'N/A'}</div>
         </div>
+        ${car.notes ? `<div style="margin-top:10px; font-size:13px; color:#555;"><span class="car-info-label">Note:</span> ${car.notes}</div>` : ''}
       `;
       container.appendChild(div);
     });
