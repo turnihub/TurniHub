@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TurniHub - Gestione Completa</title>
+<link rel="icon" type="image/png" sizes="192x192" href="https://drive.google.com/thumbnail?id=1gpquj6b4zUNurHsTzAV9T-KLq-WvHDci&sz=w512">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+</script>
+<style>
+  :root { --primary: #0056b3; --secondary: #e9ecef; --text-dark: #333; --bg-light: #f4f7f6; --danger: #dc3545; --success: #28a745; }
+  * { box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: var(--bg-light); color: var(--text-dark); display: flex; height: 100vh; overflow: hidden; }
+  
+  /* Overlay Privacy Iniziale */
+  #modal-privacy { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .privacy-box { background: white; max-width: 600px; width: 100%; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); display: flex; flex-direction: column; gap: 15px; max-height: 90vh; overflow-y: auto; }
+  
+  /* Sidebar Calendario & Note */
+  .sidebar-calendario { width: 340px; background-color: white; border-right: 2px solid #ddd; display: flex; flex-direction: column; box-shadow: 2px 0 5px rgba(0,0,0,0.05); position: relative; transition: margin-left 0.3s ease; z-index: 100; }
+  .sidebar-calendario.nascosta { margin-left: -340px; }
+  .linguetta-toggle { position: absolute; right: -30px; top: 50%; transform: translateY(-50%); width: 30px; height: 60px; background-color: var(--primary); color: white; display: flex; align-items: center; justify-content: center; border-radius: 0 10px 10px 0; cursor: pointer; box-shadow: 3px 0px 5px rgba(0,0,0,0.1); z-index: 101; }
+  .calendario-header { background-color: var(--primary); color: white; padding: 20px; text-align: center; }
+  .calendario-lista { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; }
+  
+  .turno-card { background-color: var(--secondary); border-left: 4px solid var(--primary); padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; }
+  .turno-info-top { display: flex; justify-content: space-between; align-items: center; font-size: 14px; font-weight: bold; }
+  .nota-giorno-box { display: flex; gap: 5px; margin-top: 4px; }
+  .nota-giorno-box input { flex: 1; padding: 5px 8px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; }
+  .nota-giorno-box button { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+
+  /* Area Principale */
+  .area-principale { flex: 1; padding: 25px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+  .nav-menu { display: flex; gap: 10px; padding-bottom: 15px; border-bottom: 2px solid #ddd; flex-wrap: wrap; }
+  .nav-btn { padding: 10px 18px; background-color: white; border: 1px solid #ccc; border-radius: 5px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+  .nav-btn:hover, .nav-btn.attiva { background-color: var(--primary); color: white; border-color: var(--primary); }
+  
+  .sezione { display: none; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+  .sezione.attiva { display: block; }
+
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+  
+  .btn-submit { background-color: var(--success); color: white; padding: 12px 20px; border: none; border-radius: 5px; font-weight: bold; font-size: 15px; cursor: pointer; transition: background 0.3s; }
+  .btn-submit:hover { background-color: #218838; }
+  
+  .car-card { background-color: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 15px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); position: relative; }
+  .car-info { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-top: 10px; }
+  .car-info-label { font-weight: bold; color: #666; font-size: 0.9em; }
+</style>
+</head>
+<body>
+
+<!-- MODALE OBBLIGATORIO PRIVACY AL PRIMO ACCESSO -->
+<div id="modal-privacy">
+  <div class="privacy-box">
+    <h2 style="color: var(--primary);"><i class="fas fa-shield-alt"></i> Informativa Privacy & Condizioni</h2>
+    <p style="font-size: 14px; line-height: 1.5; color: #555;">
+      Benvenuto su <b>TurniHub</b>. Prima di procedere, è importante che tu comprenda come vengono gestite le tue informazioni:
+    </p>
+    <ul style="font-size: 13px; line-height: 1.5; color: #444; padding-left: 20px;">
+      <li><b>Nessun server esterno:</b> I tuoi turni, le tue autovetture e le tue note personali non vengono inviati ad alcun server o cloud di terze parti.</li>
+      <li><b>Memoria Locale (LocalStorage):</b> Tutti i dati risiedono esclusivamente sul dispositivo (smartphone o computer) che stai utilizzando.</li>
+      <li><b>Responsabilità dei dati:</b> Poiché i dati sono salvati solo sul tuo dispositivo, la conservazione e la protezione degli stessi è affidata al tuo terminale. Ti invitiamo a usare regolarmente la funzione di Backup integrata nell'app per evitare perdite in caso di cambio dispositivo o pulizia del browser.</li>
+    </ul>
+    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; border: 1px solid #ddd; margin-top: 5px;">
+      <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: bold; font-size: 14px;">
+        <input type="checkbox" id="check-privacy" onchange="togglePulsanteAccetta()" style="width: 18px; height: 18px; cursor: pointer;">
+        Ho letto, compreso e accetto l'informativa sulla privacy e la gestione locale dei dati.
+      </label>
+    </div>
+    <button type="button" id="btn-accetta-privacy" onclick="accettaPrivacy()" disabled style="background: #ccc; color: white; padding: 12px; border: none; border-radius: 5px; font-weight: bold; cursor: not-allowed; transition: background 0.3s;">
+      Accedi a TurniHub
+    </button>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar-calendario" id="sidebar">
+  <div class="linguetta-toggle" onclick="toggleCalendario()"><i id="icona-toggle" class="fas fa-chevron-left"></i></div>
+  <div class="calendario-header">
+    <h3 style="margin: 0; font-size: 20px;"><i class="fas fa-calendar-alt"></i> TurniHub</h3>
+    <small id="nome-utente-sidebar" style="display: block; margin-top: 6px; font-size: 11px; opacity: 0.9;">Nessun turno caricato</small>
+  </div>
+  <div class="calendario-lista" id="lista-turni-personali">
+    <i style="color:#888; text-align:center; margin-top:20px;">Carica il PDF dei turni per iniziare.</i>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="area-principale">
+  <div style="display: flex; align-items: center; gap: 15px;">
+    <div>
+      <h2 style="margin: 0; color: var(--primary); font-size: 26px;">TurniHub & Auto Manager</h2>
+      <small style="color: #6c757d; font-size: 14px;">Gestione Turni, Autovetture e Note Personali in totale sicurezza (Offline)</small>
+    </div>
+  </div>
+
+  <!-- MENU DI NAVIGAZIONE -->
+  <nav class="nav-menu">
+    <button class="nav-btn attiva" onclick="cambiaSezione('sec-carica', this)">Carica Turni</button>
+    <button class="nav-btn" onclick="cambiaSezione('sec-dashboard', this)">Dashboard Auto</button>
+    <button class="nav-btn" onclick="cambiaSezione('sec-auto', this)">Le Mie Auto</button>
+    <button class="nav-btn" onclick="cambiaSezione('sec-aggiungi-auto', this)">Aggiungi Auto</button>
+    <button class="nav-btn" onclick="cambiaSezione('sec-manutenzione', this)">Manutenzioni</button>
+    <button class="nav-btn" onclick="cambiaSezione('sec-privacy', this)">Privacy & Backup</button>
+  </nav>
+
+  <!-- 1. SEZIONE CARICA TURNI PDF -->
+  <section id="sec-carica" class="sezione attiva">
+    <h3><i class="fas fa-file-pdf" style="color: var(--danger);"></i> Carica il piano turni (PDF)</h3>
+    <p>Seleziona il PDF ufficiale dei turni. I dati saranno analizzati ed elaborati interamente sul tuo dispositivo.</p>
+    <input type="file" id="filePdfInput" accept="application/pdf" style="display: none;" onchange="elaboraPDFLocale()">
+    <button type="button" class="btn-submit" onclick="document.getElementById('filePdfInput').click()"><i class="fas fa-upload"></i> Scegli il PDF</button>
+    <div id="stato-caricamento-pdf" style="margin-top: 15px; font-size: 14px; font-weight: bold;"></div>
+  </section>
+
+  <!-- 2. DASHBOARD AUTO -->
+  <section id="sec-dashboard" class="sezione">
+    <h2>Dashboard e Scadenze</h2>
+    <div class="notifications" id="notifications-list" style="margin-top: 15px;"></div>
+    <div style="margin-top: 20px;">
+      <h3>Sommario Autovetture</h3>
+      <div id="cars-summary"></div>
+    </div>
+  </section>
+
+  <!-- 3. LE MIE AUTO -->
+  <section id="sec-auto" class="sezione">
+    <h2>Le Mie Autovetture</h2>
+    <div style="margin-bottom: 15px;">
+      <input type="text" id="car-search" placeholder="Cerca per targa, marca o modello..." onkeyup="searchCars()" style="width:100%; padding:10px; border:1px solid #ddd; border-radius:4px;">
+    </div>
+    <div id="cars-list"></div>
+  </section>
+
+  <!-- 4. AGGIUNGI / MODIFICA AUTO -->
+  <section id="sec-aggiungi-auto" class="sezione">
+    <h2 id="form-auto-title">Aggiungi Nuova Autovettura</h2>
+    <form id="car-form" onsubmit="saveCar(event)">
+      <input type="hidden" id="car-id">
+      <div class="form-group"><label>Targa*</label><input type="text" id="car-plate" required></div>
+      <div class="form-group"><label>Marca*</label><input type="text" id="car-brand" required></div>
+      <div class="form-group"><label>Modello*</label><input type="text" id="car-model" required></div>
+      <div class="form-group"><label>Anno di Produzione*</label><input type="number" id="car-year" min="1900" max="2030" required></div>
+      <div class="form-group"><label>Numero Polizza Assicurativa</label><input type="text" id="car-insurance"></div>
+      <div class="form-group"><label>Scadenza Assicurazione</label><input type="date" id="car-insurance-expiry"></div>
+      <div class="form-group"><label>Data Ultima Revisione</label><input type="date" id="car-inspection"></div>
+      <div class="form-group"><label>Note</label><textarea id="car-notes" rows="3"></textarea></div>
+      <button type="submit" class="btn-submit">Salva Autovettura</button>
+      <button type="button" onclick="resetCarForm()" style="padding: 12px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">Annulla</button>
+    </form>
+  </section>
+
+  <!-- 5. MANUTENZIONI -->
+  <section id="sec-manutenzione" class="sezione">
+    <h2>Registro Manutenzioni</h2>
+    <div class="form-group">
+      <select id="maintenance-car-select" onchange="loadMaintenanceRecords()">
+        <option value="">Seleziona un'auto...</option>
+      </select>
+    </div>
+    <div id="maintenance-form-container" style="display:none; background:#f9f9f9; padding:15px; border-radius:6px; margin-bottom:15px;">
+      <h3>Aggiungi Manutenzione</h3>
+      <form id="maintenance-form" onsubmit="saveMaintenanceRecord(event)">
+        <input type="hidden" id="maintenance-id">
+        <div class="form-group"><label>Data*</label><input type="date" id="maintenance-date" required></div>
+        <div class="form-group"><label>Tipo di Manutenzione*</label>
+          <select id="maintenance-type" required>
+            <option value="">Seleziona...</option>
+            <option value="oil">Cambio Olio</option>
+            <option value="filter">Filtri</option>
+            <option value="brake">Freni</option>
+            <option value="tire">Pneumatici</option>
+            <option value="battery">Batteria</option>
+            <option value="other">Altro</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Chilometraggio (km)</label><input type="number" id="maintenance-km" min="0"></div>
+        <div class="form-group"><label>Costo (€)</label><input type="number" id="maintenance-cost" min="0" step="0.01"></div>
+        <div class="form-group"><label>Descrizione</label><textarea id="maintenance-notes" rows="2"></textarea></div>
+        <div class="form-group"><label>Prossima Manutenzione (Data)</label><input type="date" id="maintenance-next"></div>
+        <button type="submit" class="btn-submit">Salva Manutenzione</button>
+      </form>
+    </div>
+    <div id="maintenance-list"></div>
+    <button id="add-maintenance-btn" onclick="showMaintenanceForm()" class="btn-submit" style="display:none; margin-top:10px;">Aggiungi Manutenzione</button>
+  </section>
+
+  <!-- 6. PRIVACY & BACKUP -->
+  <section id="sec-privacy" class="sezione">
+    <h2>🔒 Privacy & Gestione Dati (Backup)</h2>
+    <p><strong>Come sono protetti i tuoi dati:</strong> TurniHub non utilizza alcun server esterno. Tutti i tuoi turni, le tue auto e le tue note giornaliere sono salvati esclusivamente nella memoria del tuo browser (<i>LocalStorage</i>).</p>
+    <p><strong>Come evitare di perdere i dati se cambi telefono o browser:</strong> Puoi esportare un file di backup sicuro sul tuo dispositivo e ricaricarlo quando vuoi.</p>
+    <div style="display: flex; gap: 15px; margin-top: 20px;">
+      <button onclick="esportaBackup()" class="btn-submit" style="background: var(--primary);"><i class="fas fa-download"></i> Esporta Backup Dati</button>
+      <label class="btn-submit" style="background: #17a2b8; cursor: pointer; display: inline-block; text-align: center;"><i class="fas fa-upload"></i> Importa Backup <input type="file" id="fileBackupInput" accept=".json" style="display:none;" onchange="importaBackup(event)"></label>
+    </div>
+  </section>
+
+  <footer style="margin-top: auto; padding-top: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px dashed #ddd;">
+    TurniHub App &bull; Sviluppato per uso privato su dispositivo locale
+  </footer>
+</main>
+
+<script>
+  const pad = n => String(n).padStart(2, '0');
+
+  // Controllo accettazione privacy all'avvio
+  window.addEventListener('DOMContentLoaded', () => {
+    const privacyAccettata = localStorage.getItem('turnihub_privacy_ok');
+    if (privacyAccettata === 'true') {
+      document.getElementById('modal-privacy').style.display = 'none';
+    }
+    disegnaCalendario(turniSalvati);
+    if(turniSalvati.length > 0) {
+      document.getElementById('nome-utente-sidebar').textContent = "Turni caricati correttamente";
+    }
+  });
+
+  function togglePulsanteAccetta() {
+    const isChecked = document.getElementById('check-privacy').checked;
+    const btn = document.getElementById('btn-accetta-privacy');
+    if (isChecked) {
+      btn.disabled = false;
+      btn.style.background = 'var(--success)';
+      btn.style.cursor = 'pointer';
+    } else {
+      btn.disabled = true;
+      btn.style.background = '#ccc';
+      btn.style.cursor = 'not-allowed';
+    }
+  }
+
+  function accettaPrivacy() {
+    localStorage.setItem('turnihub_privacy_ok', 'true');
+    document.getElementById('modal-privacy').style.display = 'none';
+  }
+
+  // Gestione Navigazione Tabs
+  function cambiaSezione(id, btn) {
+    document.querySelectorAll('.sezione').forEach(s => s.classList.remove('attiva'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('attiva'));
+    document.getElementById(id).classList.add('attiva');
+    btn.classList.add('attiva');
+    if(id === 'sec-dashboard') loadDashboard();
+    if(id === 'sec-auto') loadCarsList();
+    if(id === 'sec-manutenzione') loadMaintenanceSelector();
+  }
+
+  function toggleCalendario() {
+    const sb = document.getElementById('sidebar');
+    sb.classList.toggle('nascosta');
+    document.getElementById('icona-toggle').className = sb.classList.contains('nascosta') ? 'fas fa-chevron-right' : 'fas fa-chevron-left';
+  }
+
+  // --- DATI E LOCALSTORAGE ---
+  let cars = JSON.parse(localStorage.getItem('turnihub_cars')) || [];
+  let maintenanceRecords = JSON.parse(localStorage.getItem('turnihub_maintenance')) || [];
+  let turniSalvati = JSON.parse(localStorage.getItem('turnihub_turni')) || [];
+  let noteGiornaliere = JSON.parse(localStorage.getItem('turnihub_note_giornaliere')) || {};
+
+  // --- PARSING PDF LOCALE ---
+  function elaboraPDFLocale() {
+    const fileInput = document.getElementById('filePdfInput');
+    const statoDiv = document.getElementById('stato-caricamento-pdf');
+    if (!fileInput.files.length) return;
+    
+    statoDiv.style.color = '#0056b3';
+    statoDiv.textContent = 'Lettura del PDF in corso...';
+    
+    const reader = new FileReader();
+    reader.onload = e => {
+      pdfjsLib.getDocument(new Uint8Array(e.target.result)).promise.then(pdf => {
+        return Promise.all(Array.from({length: pdf.numPages}, (_, j) => pdf.getPage(j + 1).then(p => p.getTextContent())));
+      }).then(pages => {
+        const testo = pages.flatMap(p => p.items.map(it => it.str.trim())).filter(Boolean).join(' ');
+        const h = testo.match(/Cognome\s+(.+?)\s+Nome\s+(.+?)\s+Matricola\s+(\d+)\s+Deposito\s+(\S+)/);
+        const p = testo.match(/(\d{1,2})\s+([A-Za-záù]+)\s+(\d{4})\s*-/);
+        
+        const MESI = {gennaio:1, febbraio:2, marzo:3, aprile:4, maggio:5, giugno:6, luglio:7, agosto:8, settembre:9, ottobre:10, novembre:11, dicembre:12};
+        if (!h || !p || !MESI[p[2].toLowerCase()]) {
+          fileInput.value = '';
+          statoDiv.style.color = '#dc3545';
+          statoDiv.textContent = 'PDF non riconosciuto: controlla che sia un piano turni valido.';
+          return;
+        }
+
+        const [, cognome, nome, matricola, deposito] = h;
+        const mese = MESI[p[2].toLowerCase()], anno = Number(p[3]);
+        const re = /(?:^|\s)(\d{1,2})\s+([A-Z]{1,4}\d{0,4}[A-Z]?)\s+(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/g;
+        
+        let m, visti = new Set(), turni = [];
+        while ((m = re.exec(testo)) !== null) {
+          const g = Number(m[1]);
+          if (g < 1 || g > 31 || visti.has(g)) continue;
+          visti.add(g);
+          turni.push({ dataIso: `anno-{pad(mese)}-pad(g)`,dataFormattata:`{g} ${p[2]} ${anno}`, codiceTurno: m[2], inizio: m[3], fine: m[4] });
+        }
+
+        if (!turni.length) {
+          fileInput.value = '';
+          statoDiv.style.color = '#dc3545';
+          statoDiv.textContent = 'Nessun turno trovato nel PDF.';
+          return;
+        }
+
+        turniSalvati = turni;
+        localStorage.setItem('turnihub_turni', JSON.stringify(turniSalvati));
+        document.getElementById('nome-utente-sidebar').textContent = `${nome} cognome({matricola})`;
+        statoDiv.style.color = '#28a745';
+        statoDiv.textContent = `Caricati con successo ${turni.length} turni!`;
+        disegnaCalendario(turniSalvati);
+      }).catch(err => {
+        statoDiv.style.color = '#dc3545';
+        statoDiv.textContent = 'Errore lettura PDF: ' + err.message;
+      });
+    };
+    reader.readAsArrayBuffer(fileInput.files[0]);
+  }
+
+  // --- DISEGNA CALENDARIO E NOTE GIORNALIERE ---
+  function disegnaCalendario(calendario) {
+    const box = document.getElementById('lista-turni-personali');
+    box.innerHTML = "";
+    if (!calendario.length) {
+      box.innerHTML = "<i style='color:#888; text-align:center;'>Nessun turno caricato.</i>";
+      return;
+    }
+
+    const oggiIso = new Date().toISOString().split('T')[0];
+    const sett = ["Dom", "Lun", "Mar", "Mer", "Gio", "Ven", "Sab"];
+
+    calendario.forEach(g => {
+      const div = document.createElement('div');
+      div.className = "turno-card";
+      const nomeGiorno = sett[new Date(g.dataIso + "T12:00:00").getDay()];
+      
+      if (g.dataIso === oggiIso) {
+        div.style.borderLeftColor = "#dc3545";
+        div.style.backgroundColor = "#fff3f4";
+      } else if (["R", "RIS", "RIP"].includes(g.codiceTurno)) {
+        div.style.borderLeftColor = "#28a745";
+      }
+
+      const notaSalvata = noteGiornaliere[g.dataIso] || "";
+
+      div.innerHTML = `
+        <div class="turno-info-top">
+          <span><i>nomeGiorno</i><b>{g.dataFormattata}</b></span>
+          <span>g.codiceTurno<small>({g.inizio}-${g.fine})</small></span>
+        </div>
+        <div class="nota-giorno-box">
+          <input type="text" id="nota-g.dataIso"value="{notaSalvata}" placeholder="Aggiungi nota per questo giorno...">
+          <button onclick="salvaNotaGiorno('${g.dataIso}')" title="Salva nota"><i class="fas fa-save"></i></button>
+        </div>
+      `;
+      box.appendChild(div);
+    });
+  }
+
+  function salvaNotaGiorno(dataIso) {
+    const inputVal = document.getElementById(`nota-${dataIso}`).value;
+    noteGiornaliere[dataIso] = inputVal;
+    localStorage.setItem('turnihub_note_giornaliere', JSON.stringify(noteGiornaliere));
+    alert("Nota salvata con successo per il giorno " + dataIso);
+  }
+
+  // --- GESTIONE AUTOVETTURE ---
+  function saveCar(e) {
+    e.preventDefault();
+    const carId = document.getElementById('car-id').value;
+    const isEditing = carId !== '';
+    const car = {
+      id: isEditing ? carId : generateId(),
+      plate: document.getElementById('car-plate').value,
+      brand: document.getElementById('car-brand').value,
+      model: document.getElementById('car-model').value,
+      year: parseInt(document.getElementById('car-year').value),
+      insurance: document.getElementById('car-insurance').value,
+      insuranceExpiry: document.getElementById('car-insurance-expiry').value,
+      inspection: document.getElementById('car-inspection').value,
+      notes: document.getElementById('car-notes').value
+    };
+
+    if (isEditing) {
+      const idx = cars.findIndex(c => c.id === carId);
+      if (idx !== -1) cars[idx] = car;
+    } else {
+      cars.push(car);
+    }
+
+    localStorage.setItem('turnihub_cars', JSON.stringify(cars));
+    resetCarForm();
+    alert(isEditing ? 'Auto aggiornata!' : 'Auto aggiunta!');
+    cambiaSezione('sec-auto', document.querySelectorAll('.nav-btn')[2]);
+  }
+
+  function loadCarsList() {
+    const container = document.getElementById('cars-list');
+    container.innerHTML = '';
+    if (cars.length === 0) {
+      container.innerHTML = '<p>Nessuna autovettura registrata.</p>';
+      return;
+    }
+    cars.forEach(car => {
+      const div = document.createElement('div');
+      div.className = 'car-card';
+      div.innerHTML = `
+        <div style="position:absolute; top:15px; right:15px;">
+          <button onclick="editCar('${car.id}')" style="background:#0056b3; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Modifica</button>
+          <button onclick="deleteCar('${car.id}')" style="background:#dc3545; color:white; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;">Elimina</button>
+        </div>
+        <h3>${car.brand} car.model({car.plate})</h3>
+        <div class="car-info">
+          <div><span class="car-info-label">Anno:</span> ${car.year}</div>
+          <div><span class="car-info-label">Polizza:</span> ${car.insurance || 'N/A'}</div>
+          <div><span class="car-info-label">Scad. Assicurazione:</span> ${car.insuranceExpiry || 'N/A'}</div>
+          <div><span class="car-info-label">Ultima Revisione:</span> ${car.inspection || 'N/A'}</div>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  function editCar(id) {
+    const car = cars.find(c => c.id === id);
+    if (!car) return;
+    document.getElementById('car-id').value = car.id;
+    document.getElementById('car-plate').value = car.plate;
+    document.getElementById('car-brand').value = car.brand;
+    document.getElementById('car-model').value = car.model;
+    document.getElementById('car-year').value = car.year;
+    document.getElementById('car-insurance').value = car.insurance || '';
+    document.getElementById('car-insurance-expiry').value = car.insuranceExpiry || '';
+    document.getElementById('car-inspection').value = car.inspection || '';
+    document.getElementById('car-notes').value = car.notes || '';
+    document.getElementById('form-auto-title').textContent = 'Modifica Autovettura';
+    cambiaSezione('sec-aggiungi-auto', document.querySelectorAll('.nav-btn')[3]);
+  }
+
+  function deleteCar(id) {
+    if(confirm('Vuoi davvero eliminare questa auto e le relative manutenzioni?')) {
+      cars = cars.filter(c => c.id !== id);
+      maintenanceRecords = maintenanceRecords.filter(r => r.carId !== id);
+      localStorage.setItem('turnihub_cars', JSON.stringify(cars));
+      localStorage.setItem('turnihub_maintenance', JSON.stringify(maintenanceRecords));
+      loadCarsList();
+    }
+  }
+
+  function resetCarForm() {
+    document.getElementById('car-form').reset();
+    document.getElementById('car-id').value = '';
+    document.getElementById('form-auto-title').textContent = 'Aggiungi Nuova Autovettura';
+  }
+
+  function searchCars() {
+    const term = document.getElementById('car-search').value.toLowerCase();
+    document.querySelectorAll('#cars-list .car-card').forEach((card, idx) => {
+      const car = cars[idx];
+      const match = car.plate.toLowerCase().includes(term) || car.brand.toLowerCase().includes(term) || car.model.toLowerCase().includes(term);
+      card.style.display = match ? 'block' : 'none';
+    });
+  }
+
+  // --- MANUTENZIONI ---
+  function loadMaintenanceSelector() {
+    const select = document.getElementById('maintenance-car-select');
+    select.innerHTML = '<option value="">Seleziona un\'auto...</option>';
+    cars.forEach(c => {
+      select.innerHTML += `<option value="c.id">{c.brand} c.model({c.plate})</option>`;
+    });
+    document.getElementById('maintenance-form-container').style.display = 'none';
+    document.getElementById('maintenance-list').innerHTML = '';
+    document.getElementById('add-maintenance-btn').style.display = 'none';
+  }
+
+  function loadMaintenanceRecords() {
+    const carId = document.getElementById('maintenance-car-select').value;
+    const listContainer = document.getElementById('maintenance-list');
+    const addBtn = document.getElementById('add-maintenance-btn');
+    listContainer.innerHTML = '';
+    if(!carId) {
+      addBtn.style.display = 'none';
+      return;
+    }
+    addBtn.style.display = 'block';
+    const recs = maintenanceRecords.filter(r => r.carId === carId);
+    if(recs.length === 0) {
+      listContainer.innerHTML = '<p>Nessuna manutenzione registrata.</p>';
+      return;
+    }
+    recs.forEach(r => {
+      listContainer.innerHTML += `
+        <div style="background:#fff; border:1px solid #ddd; padding:10px; border-radius:4px; margin-bottom:8px;">
+          <b>${r.date} - ${r.type.toUpperCase()}</b><br>
+          Km: ${r.km || 'N/A'} | Costo: ${r.cost ? r.cost + ' €' : 'N/A'}<br>
+          <small>${r.notes || ''}</small>
+        </div>
+      `;
+    });
+  }
+
+  function showMaintenanceForm() {
+    document.getElementById('maintenance-form-container').style.display = 'block';
+  }
+
+  function saveMaintenanceRecord(e) {
+    e.preventDefault();
+    const carId = document.getElementById('maintenance-car-select').value;
+    const record = {
+      id: generateId(),
+      carId: carId,
+      date: document.getElementById('maintenance-date').value,
+      type: document.getElementById('maintenance-type').value,
+      km: document.getElementById('maintenance-km').value,
+      cost: document.getElementById('maintenance-cost').value,
+      notes: document.getElementById('maintenance-notes').value
+    };
+    maintenanceRecords.push(record);
+    localStorage.setItem('turnihub_maintenance', JSON.stringify(maintenanceRecords));
+    document.getElementById('maintenance-form').reset();
+    document.getElementById('maintenance-form-container').style.display = 'none';
+    loadMaintenanceRecords();
+  }
+
+  // --- DASHBOARD NOTIFICHE ---
+  function loadDashboard() {
+    const container = document.getElementById('notifications-list');
+    container.innerHTML = '<p>Nessuna notifica urgente al momento.</p>';
+    const summary = document.getElementById('cars-summary');
+    summary.innerHTML = cars.length ? `<p>Hai registrato <b>${cars.length}</b> autovetture.</p>` : '<p>Nessuna auto registrata.</p>';
+  }
+
+  // --- BACKUP & RIPRISTINO (Anti perdita dati) ---
+  function esportaBackup() {
+    const datiCompleti = {
+      cars,
+      maintenanceRecords,
+      turniSalvati,
+      noteGiornaliere
+    };
+    const blob = new Blob([JSON.stringify(datiCompleti, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup_turnihub_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+  }
+
+  function importaBackup(event) {
+    const file = event.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const backup = JSON.parse(e.target.result);
+        if(backup.cars) cars = backup.cars;
+        if(backup.maintenanceRecords) maintenanceRecords = backup.maintenanceRecords;
+        if(backup.turniSalvati) turniSalvati = backup.turniSalvati;
+        if(backup.noteGiornaliere) noteGiornaliere = backup.noteGiornaliere;
+
+        localStorage.setItem('turnihub_cars', JSON.stringify(cars));
+        localStorage.setItem('turnihub_maintenance', JSON.stringify(maintenanceRecords));
+        localStorage.setItem('turnihub_turni', JSON.stringify(turniSalvati));
+        localStorage.setItem('turnihub_note_giornaliere', JSON.stringify(noteGiornaliere));
+
+        disegnaCalendario(turniSalvati);
+        alert('Backup ripristinato con successo!');
+      } catch(err) {
+        alert('Errore durante il ripristino del file di backup.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+  }
+</script>
+</body>
+</html>
+
